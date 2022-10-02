@@ -100,10 +100,13 @@ At first, we can initialize $\vec{x}$ as zero vector.
 ## Visualization
 
 ### #basis = 2, $\lambda$=0
+![#basis = 2, lambda=0](https://github.com/johnnyhwu/nycu_machine_learning_lab/blob/main/Lab1/img/Figure_1.png)
 
 ### #basis = 3, $\lambda$=0
+![#basis = 2, lambda=0](https://github.com/johnnyhwu/nycu_machine_learning_lab/blob/main/Lab1/img/Figure_2.png)
 
 ### #basis = 3, $\lambda$=10000
+![#basis = 2, lambda=0](https://github.com/johnnyhwu/nycu_machine_learning_lab/blob/main/Lab1/img/Figure_3.png)
 
 ## The Most Difficult Part for Me
 
