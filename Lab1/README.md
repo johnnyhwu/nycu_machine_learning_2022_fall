@@ -14,6 +14,7 @@ The purpose of this lab is make us totally understand how to solve regularized l
 Given a dataset, each sample is in format `(x, y)`, find the parameters $w_n$ of linear regression model which fits on this dataset.
 
 Linear regression model:
+
 $$
 w_0x^0 + w_1x^1 + w_2x^2 + ... + w_nx^n = y
 $$
@@ -79,7 +80,7 @@ $$
 In Newton Method, we can iterativly update $\vec{x}$ in this way:
 
 $$
-\vec{x}_{k+1} = \vec{x}_{k} - H^{-1}_{k} g_k
+\vec{x_{k+1}} = \vec{x_{k}} - H^{-1}_{k} g_k
 $$
 
 where $H$ is hessian and $g$ is gradient. When we use LSE as loss function, we get:
@@ -95,6 +96,14 @@ $$
 At first, we can initialize $\vec{x}$ as zero vector.
 
 > Just calculate $H$ and $g$ and iterativly update $\vec{x}$ until $g$ is small enough
+
+## Visualization
+
+### #basis = 2, $\lambda$=0
+
+### #basis = 3, $\lambda$=0
+
+### #basis = 3, $\lambda$=10000
 
 ## The Most Difficult Part for Me
 

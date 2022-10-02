@@ -1,5 +1,23 @@
 import utils
 
+def infer_model(mat, x):
+    sum = 0
+    for idx in range(0, len(mat)):
+        sum += mat[idx][0] * x**idx
+    return sum
+
+
+def total_error(mat, xs, ys):
+    sum = 0
+    ys_pred = []
+    for (x, y) in zip(xs, ys):
+        y_pred = infer_model(mat, x)
+        ys_pred.append(y_pred)
+
+        sum += (y_pred - y)**2
+    return (sum, ys_pred)
+
+
 def least_square_error(xs, ys, num_basis, reg_term):
     mat_b = utils.build_mat_b(ys)
     mat_A = utils.build_mat_A(xs, num_basis)
@@ -12,7 +30,7 @@ def least_square_error(xs, ys, num_basis, reg_term):
 
     mat = utils.multiply_mat_mat(mat_inv, mat_AT)
     mat = utils.multiply_mat_mat(mat, mat_b)
-    return mat
+    return mat, total_error(mat, xs, ys), 
 
 def newton_method(xs, ys, num_basis):
     mat_b = utils.build_mat_b(ys)
@@ -44,4 +62,4 @@ def newton_method(xs, ys, num_basis):
         # update x
         mat_x = utils.sub_mat_mat(mat_x, utils.multiply_mat_mat(hessian_inv, gradient))
     
-    return mat_x
+    return mat_x, total_error(mat_x, xs, ys)
