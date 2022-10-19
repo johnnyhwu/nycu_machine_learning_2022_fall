@@ -33,8 +33,8 @@ if __name__ == "__main__":
     prior = (alpha_1, beta_1)
 
     # iterate all outcomes
-    for idx, outcome in enumerate(outcomes):
-        outcome = Counter(outcome)
+    for idx, raw_outcome in enumerate(outcomes):
+        outcome = Counter(raw_outcome)
         num_success = outcome['1']
         num_failure = outcome['0']
         
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         # represent posterior in bea distribution
         posterior = (num_success+prior[0], num_failure+prior[1])
 
-        print(f"case {idx+1}: {outcome}")
+        print(f"case {idx+1}: {raw_outcome} => {outcome}")
         print(f"Likelihood: {likelihood}")
         print(f"Prior: {prior}")
         print(f"Posterior: {posterior}")
