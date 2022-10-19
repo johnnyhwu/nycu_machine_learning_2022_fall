@@ -11,15 +11,16 @@ if __name__ == "__main__":
     classfier = solver.NaiveBayesClassifier(
         num_class=10,
         num_feature=28*28,
-        dist_type="discrete" # or discrete
+        dist_type="continuous" # continuous or discrete
     )
     classfier.fit(
         X=train_imgs,
         y=train_labels
     )
+    classfier.distill()
     classfier.evaluate(
         X=test_imgs,
         y=test_labels,
         show_info=False
     )
-    classfier.distill()
+    
