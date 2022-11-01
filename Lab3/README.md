@@ -115,3 +115,29 @@ Predictive distribution:
 mean = X * posterior's mean
 variance = (1/a) * X * (posterior's covariance)^(-1) * X^T 
 ```
+
+### Visualization
+
+- Test Case 1
+    - n = 4
+    - a = 1
+    - b = 1
+    - w = [1,2,3,4]
+
+![test case 1](img/1.png)
+
+- Test Case 2
+    - n = 4
+    - a = 1
+    - b = 100
+    - w = [1,2,3,4]
+
+![test case 2](img/2.png)
+
+- Test Case 3
+    - n = 3
+    - a = 3
+    - b = 1
+    - w = [1,2,3]
+
+![test case 3](img/3.png)
