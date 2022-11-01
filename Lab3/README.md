@@ -113,5 +113,5 @@ It is meaning of **predictive distribution** !!!
 Predictive distribution:
 ```
 mean = X * posterior's mean
-variance =  
+variance = (1/a) * X * (posterior's covariance)^(-1) * X^T 
 ```
