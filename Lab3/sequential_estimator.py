@@ -17,7 +17,7 @@ if __name__ == "__main__":
         sample_mean += delta_1 / count
         delta_2 = data - sample_mean
         m2 += delta_1 * delta_2
-        sample_var = m2 / (count - 1)
+        sample_var = m2 / count
 
         print(f"Iteration: {count}")
         print(f"Add data point: {data}")
