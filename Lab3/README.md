@@ -108,7 +108,7 @@ Most important:
 
 After updating posterior's covariance and mean, how to use it predict current data point?
 
-It is meaning of **predictive distribution** !!!
+It is **mean** of **predictive distribution** !!!
 
 Predictive distribution:
 ```
