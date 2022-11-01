@@ -1,11 +1,6 @@
-from turtle import color
 import numpy as np
 import matplotlib.pyplot as plt
 from data_generator import polynomial_basis_linear_model
-
-#%%
-
-#%%
 
 def create_design_matrix(data_x, num_basis):
     """
