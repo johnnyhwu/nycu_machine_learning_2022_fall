@@ -6,3 +6,5 @@ Below is the short description for each lab:
 - Lab 1: Solve regularized linear regression model with Least Squared Error or Newton Method
 - Lab 2: Build a Naive Bayes Classifier on MNIST
 - Lab 3: Baysian Linear Regression
+- Lab 4: Logistic Regression & EM
+- Lab 5: Gaussian Process & Support Vector Machine
