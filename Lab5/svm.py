@@ -81,11 +81,6 @@ if __name__ == "__main__":
     # read dataset
     X_train, y_train, X_test, y_test = read_dataset()
 
-    print(X_train.shape)
-    print(y_train.shape)
-
-    exit()
-
     if EXECUTION_PART == 1:
 
         # part 1: linear kernel, polynomial kernel and RBF kernel in SVM
