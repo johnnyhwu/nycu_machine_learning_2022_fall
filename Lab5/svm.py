@@ -45,10 +45,19 @@ def grid_search(X_train, y_train, all_combinations, best_hyperparams, best_acc):
                 for i in range(len(params)):
                     best_hyperparams[i] = ord(params[i])
 
+def linear_kernel(X1, X2):
+    return np.matmul(X1, np.transpose(X2))
+    
+def rbf_kernel(X1, X2, gamma):
+    dist = np.sum(X1 ** 2, axis=1).reshape(-1, 1) + np.sum(X2 ** 2, axis=1) - 2 * np.matmul(X1, np.transpose(X2))
+    kernel = np.exp((-1 * gamma * dist))
+    return kernel
+
 
 if __name__ == "__main__":
 
-    EXECUTION_PART = 2
+    EXECUTION_PART = 3
+    NUM_CORE = 16
 
     # read dataset
     X_train, y_train, X_test, y_test = read_dataset()
@@ -75,24 +84,19 @@ if __name__ == "__main__":
 
         # part 2: find best hyperparameters for C-SVC with linear, polynomial and RBF kernel
         hyperparams = {
-            'degree': [1, 2, 3, 4, 5], # polynomail kernel (default = 3)
+            'degree': [2, 3, 4, 5], # polynomail kernel (default = 3)
             'gamma': [
-                0.00127551*(1/4),
                 0.00127551*(1/2),
                 0.00127551*1,
-                0.00127551*2,
                 0.00127551*4,
                 0.00127551*8,
                 0.00127551*16,
                 0.00127551*32, 
                 0.00127551*64,
-                0.00127551*128,
             ],  # polynomail and RBF kernel (default = 1/784 = 0.00127551)
             'coef0': [0, 1, 2, 3, 4], # polynomail kernel (default = 0)
-            'cost': [0.01, 0.1, 1, 10, 25, 50 ,75, 100, 200], # C-SVC (default = 1)
+            'cost': [0.01, 0.1, 1, 10, 100, 200], # C-SVC (default = 1)
         }
-
-        # 2349 total
 
         all_combinations = []
 
@@ -122,16 +126,16 @@ if __name__ == "__main__":
 
         print(f"Total number of combinations: {len(all_combinations)}")
 
-        process_tasks = int(len(all_combinations) // 8)
+        process_tasks = int(len(all_combinations) // NUM_CORE)
         process_pool = []
         best_hyperparams = Array('i', 100)
         best_acc = Value('d', 0)
 
-        for i in range(8):
+        for i in range(NUM_CORE):
             
-            start_idx = i * 8
-            end_idx = (i+1) * 8
-            if end_idx == 7:
+            start_idx = i * NUM_CORE
+            end_idx = (i+1) * NUM_CORE
+            if end_idx == NUM_CORE - 1:
                 end_idx = len(all_combinations)
             
             p = Process(
@@ -158,4 +162,86 @@ if __name__ == "__main__":
             print(chr(best_hyperparams[i]), end="")
         print()
         print(f"best_acc: {best_acc.value}")
+
+        model = svm.svm_train(y_train, X_train, "-t 1 -c 0.1 -g 0.02040816 -d 4 -r 2 -q")
+        pred_label, pred_acc, pred_val = svm.svm_predict(y_test, X_test, model)
+    
+    else:
+        # part3: user-defined kernel (linear kernel + RBF kernel)
+        linear_kernel_train = linear_kernel(X_train, X_train)
+        rbf_kernel_train = rbf_kernel(X_train, X_train, 1 / 784)
+
+        linear_kernel_test = np.transpose(linear_kernel(X_train, X_test))
+        rbf_kernel_test = np.transpose(rbf_kernel(X_train, X_test, 1 / 784))
+
+        X_kernel_id_train = np.arange(1, 5001).reshape((-1, 1))
+        X_kernel_train = np.concatenate([X_kernel_id_train, 0.9*linear_kernel_train + 0.1*rbf_kernel_train], axis=1)
+
+        X_kernel_id_test = np.arange(1, 2501).reshape((-1, 1))
+        X_kernel_test = np.concatenate([X_kernel_id_test, 0.9*linear_kernel_test + 0.1*rbf_kernel_test], axis=1)
+
+        hyperparams = {
+            'gamma': [
+                0.00127551*(1/2),
+                0.00127551*1,
+                0.00127551*4,
+                0.00127551*8,
+                0.00127551*16,
+                0.00127551*32, 
+                0.00127551*64,
+            ],  # polynomail and RBF kernel (default = 1/784 = 0.00127551)
+            'cost': [0.01, 0.1, 1, 10, 100, 200], # C-SVC (default = 1)
+        }
+
+        all_combinations = []
+        for c in hyperparams["cost"]:
+            for g in hyperparams["gamma"]:
+                params = f"-t 4 -c {c} -g {g} -v 3 -q"   
+                all_combinations.append(params)
+        
+        print(f"Total number of combinations: {len(all_combinations)}")
+
+        process_tasks = int(len(all_combinations) // NUM_CORE)
+        process_pool = []
+        best_hyperparams = Array('i', 100)
+        best_acc = Value('d', 0)
+
+        for i in range(NUM_CORE):
+            
+            start_idx = i * NUM_CORE
+            end_idx = (i+1) * NUM_CORE
+            if end_idx == NUM_CORE - 1:
+                end_idx = len(all_combinations)
+            
+            p = Process(
+                    target=grid_search, 
+                    args=(
+                        X_kernel_train, 
+                        y_train, 
+                        all_combinations[start_idx:end_idx],
+                        best_hyperparams,
+                        best_acc
+                    )
+                )
+            
+            process_pool.append(p)
+        
+        for p in process_pool:
+            p.start()
+        
+        for p in process_pool:
+            p.join()
+
+        print("best_hyperparams: ")
+        for i in range(len(best_hyperparams)):
+            print(chr(best_hyperparams[i]), end="")
+        print()
+        print(f"best_acc: {best_acc.value}")
+
+        # model = svm.svm_train(y_train, X_kernel_train, "-t 4 -q")
+        model = svm.svm_train(y_train, X_kernel_train, "-t 4 -c 0.01 -g 0.08163264 -q")
+        pred_label, pred_acc, pred_val = svm.svm_predict(y_test, X_kernel_test, model)
+
+
+
 
