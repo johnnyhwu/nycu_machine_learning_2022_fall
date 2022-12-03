@@ -2,7 +2,7 @@ import numpy as np
 import libsvm.svmutil as svm
 
 
-def read_dataset(path="data/"):
+def read_dataset(path="data"):
 
     # X_train
     with open(f"{path}/X_train.csv", "r") as f:
