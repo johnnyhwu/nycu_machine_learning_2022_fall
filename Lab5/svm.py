@@ -11,7 +11,7 @@ def read_dataset(path="data"):
     X_train = np.array(X_train, dtype=np.float32)
 
     # y_train
-    with open(f"{path}/y_train.csv", "r") as f:
+    with open(f"{path}/Y_train.csv", "r") as f:
         contents = f.readlines()
     y_train = [[int(text.strip())] for text in contents]
     y_train = np.array(y_train, dtype=np.int8).flatten()
@@ -23,7 +23,7 @@ def read_dataset(path="data"):
     X_test = np.array(X_test, dtype=np.float32)
 
     # y_test
-    with open(f"{path}/y_test.csv", "r") as f:
+    with open(f"{path}/Y_test.csv", "r") as f:
         contents = f.readlines()
     y_test = [[int(text.strip())] for text in contents]
     y_test = np.array(y_test, dtype=np.int8).flatten()
@@ -80,6 +80,11 @@ if __name__ == "__main__":
 
     # read dataset
     X_train, y_train, X_test, y_test = read_dataset()
+
+    print(X_train.shape)
+    print(y_train.shape)
+
+    exit()
 
     if EXECUTION_PART == 1:
 
