@@ -1,5 +1,6 @@
 import numpy as np
 import libsvm.svmutil as svm
+from multiprocessing import Process, Value, Array
 
 
 def read_dataset(path="data"):
@@ -31,47 +32,18 @@ def read_dataset(path="data"):
     return X_train, y_train, X_test, y_test
 
 
-def grid_search(X_train, y_train, hyperparams):
-
-    all_combinations = []
-
-    for kernel_idx, _ in enumerate(["linear", "polynomial", "rbf"]):
-
-        # linear kernel
-        if kernel_idx == 0:
-            for c in hyperparams["cost"]:
-                params = f"-t {kernel_idx} -c {c} -v 3 -q"
-                all_combinations.append(params)
-        
-        # polynomail kernel
-        elif kernel_idx == 1:
-            for c in hyperparams["cost"]:
-                for g in hyperparams["gamma"]:
-                    for d in hyperparams["degree"]:
-                        for co in hyperparams["coef0"]:
-                            params = f"-t {kernel_idx} -c {c} -g {g} -d {d} -r {co} -v 3 -q"
-                            all_combinations.append(params)
-        
-        # RBF kernel
-        else:
-            for c in hyperparams["cost"]:
-                for g in hyperparams["gamma"]:
-                    params = f"-t {kernel_idx} -c {c} -g {g} -v 3 -q"   
-                    all_combinations.append(params)
-
-    print(f"Total number of combinations: {len(all_combinations)}")
-
-    best_hyperparams = None
-    best_acc = 0
+def grid_search(X_train, y_train, all_combinations, best_hyperparams, best_acc):
 
     for idx, params in enumerate(all_combinations):
         print(f"#{idx}: ", end="")
         train_acc = svm.svm_train(y_train, X_train, params)
-        if train_acc > best_acc:
-            best_acc = train_acc
-            best_hyperparams = params
-    
-    return best_hyperparams, best_acc
+        if train_acc > best_acc.value:
+            with best_acc.get_lock() and best_hyperparams.get_lock():
+                best_acc.value = train_acc
+                for i in range(100):
+                    best_hyperparams[i] = 32
+                for i in range(len(params)):
+                    best_hyperparams[i] = ord(params[i])
 
 
 if __name__ == "__main__":
@@ -103,19 +75,87 @@ if __name__ == "__main__":
 
         # part 2: find best hyperparameters for C-SVC with linear, polynomial and RBF kernel
         hyperparams = {
-            'degree': [2, 3, 4, 5], # polynomail kernel (default = 3)
+            'degree': [1, 2, 3, 4, 5], # polynomail kernel (default = 3)
             'gamma': [
-                0.00127551*(1/2), 
-                0.00127551*1, 
-                0.00127551*4, 
-                0.00127551*16, 
-                0.00127551*64
+                0.00127551*(1/4),
+                0.00127551*(1/2),
+                0.00127551*1,
+                0.00127551*2,
+                0.00127551*4,
+                0.00127551*8,
+                0.00127551*16,
+                0.00127551*32, 
+                0.00127551*64,
+                0.00127551*128,
             ],  # polynomail and RBF kernel (default = 1/784 = 0.00127551)
             'coef0': [0, 1, 2, 3, 4], # polynomail kernel (default = 0)
-            'cost': [0.0001, 0.001, 0.01, 0.1, 1, 10, 100], # C-SVC (default = 1)
+            'cost': [0.01, 0.1, 1, 10, 25, 50 ,75, 100, 200], # C-SVC (default = 1)
         }
 
-        best_hyperparams, best_acc = grid_search(X_train, y_train, hyperparams)
-        print(best_hyperparams)
-        print(best_acc)
+        # 2349 total
+
+        all_combinations = []
+
+        for kernel_idx, _ in enumerate(["linear", "polynomial", "rbf"]):
+
+            # linear kernel
+            if kernel_idx == 0:
+                for c in hyperparams["cost"]:
+                    params = f"-t {kernel_idx} -c {c} -v 3 -q"
+                    all_combinations.append(params)
+            
+            # polynomail kernel
+            elif kernel_idx == 1:
+                for c in hyperparams["cost"]:
+                    for g in hyperparams["gamma"]:
+                        for d in hyperparams["degree"]:
+                            for co in hyperparams["coef0"]:
+                                params = f"-t {kernel_idx} -c {c} -g {g} -d {d} -r {co} -v 3 -q"
+                                all_combinations.append(params)
+            
+            # RBF kernel
+            else:
+                for c in hyperparams["cost"]:
+                    for g in hyperparams["gamma"]:
+                        params = f"-t {kernel_idx} -c {c} -g {g} -v 3 -q"   
+                        all_combinations.append(params)
+
+        print(f"Total number of combinations: {len(all_combinations)}")
+
+        process_tasks = int(len(all_combinations) // 8)
+        process_pool = []
+        best_hyperparams = Array('i', 100)
+        best_acc = Value('d', 0)
+
+        for i in range(8):
+            
+            start_idx = i * 8
+            end_idx = (i+1) * 8
+            if end_idx == 7:
+                end_idx = len(all_combinations)
+            
+            p = Process(
+                    target=grid_search, 
+                    args=(
+                        X_train, 
+                        y_train, 
+                        all_combinations[start_idx:end_idx],
+                        best_hyperparams,
+                        best_acc
+                    )
+                )
+            
+            process_pool.append(p)
+        
+        for p in process_pool:
+            p.start()
+        
+        for p in process_pool:
+            p.join()
+
+        print("best_hyperparams: ")
+        for i in range(len(best_hyperparams)):
+            print(chr(best_hyperparams[i]), end="")
+        print()
+        print(f"best_acc: {best_acc.value}")
 
