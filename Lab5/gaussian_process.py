@@ -99,6 +99,7 @@ if __name__ == '__main__':
     best_sigma = opt.x[0]
     best_alpha = opt.x[1]
     best_length_scale = opt.x[2]
+
     gaussian_process(
         X_train,
         y_train,
