@@ -134,8 +134,8 @@ def clustering(num_cluster: int, matrix_u: np.ndarray, init_cluster: str, output
             loop=0
         )
     
-    exit()
-    
+    cluster_image[0].save(f"result/spectral/{output_name}_first.png")
+    cluster_image[-1].save(f"result/spectral/{output_name}_last.png")
 
     # plot data point in eigenspace (only for 2 clusters case)
     print("save png")
@@ -159,9 +159,10 @@ def spectral_clustering(
 ) -> None:
 
     # shortcut
-    matrix_u = np.load("image_1_normalized_matrix_u.npy")
-    clustering(num_cluster, matrix_u, init_cluster, output_name)
-    exit()
+    # matrix_u = np.load("image_2_normalized_matrix_u.npy")
+    # print(matrix_u.shape)
+    # clustering(num_cluster, matrix_u, init_cluster, output_name)
+    # exit()
 
     # compute gram matrix
     matrix_w = compute_kernel(image, gamma_spatial, gamma_color)
@@ -174,10 +175,6 @@ def spectral_clustering(
         for r in range(matrix_d.shape[0]):
             matrix_d[r][r] = 1.0 / np.sqrt(matrix_d[r, r])
         matrix_l = np.matmul(np.matmul(matrix_d, matrix_l), matrix_d)
-    
-    # with open("matrix_l.npy", "wb") as f:
-    #     np.save(f, matrix_l)
-    # exit()
 
     # calculate eigenvalues and eigenvectors of laplacian matrix
     eigenvalues, eigenvectors = np.linalg.eig(matrix_l)
@@ -192,7 +189,7 @@ def spectral_clustering(
     sort_idx = sort_idx[:num_cluster]
 
     # get corresponding eigenvectors
-    matrix_u = eigenvectors[sort_idx[0:num_cluster]].T
+    matrix_u = eigenvectors[sort_idx].T
 
     # normalize each row in matrix U if normalized cut
     if cut_way == "normalized":
@@ -200,9 +197,8 @@ def spectral_clustering(
             matrix_u[row_idx, :] /= np.sum(matrix_u[row_idx, :])
     
     # save matrix U for avoid recomputing it
-    # with open("image_1_normalized_matrix_u.npy", "wb") as f:
+    # with open("image_2_normalized_matrix_u.npy", "wb") as f:
     #     np.save(f, matrix_u)
-    # exit()
 
     # spectral clustering
     clustering(num_cluster, matrix_u, init_cluster, output_name)
@@ -211,11 +207,11 @@ def spectral_clustering(
 if __name__ == '__main__':
 
     # user-defined variable
-    IMAGE = "1"
+    IMAGE = "2"
     GAMMA_SPATIAL = 0.0001
-    GAMMA_COLOR = 0.001
+    GAMMA_COLOR = 0.0001
     NUM_CLUSTER = 3
-    INIT_CLUSTER = "random" # "random" or "k-means++"
+    INIT_CLUSTER = "k-means++" # "random" or "k-means++"
     CUT_WAY = "normalized" # "ratio" or "normalized"
 
     # read image as numpy array

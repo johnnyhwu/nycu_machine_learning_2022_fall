@@ -123,7 +123,7 @@ def clustering(num_cluster: int, initial_cluster: np.ndarray, kernel: np.ndarray
         cluster_image.append(cluster2image(new_cluster, cluster_color))
 
         # converge
-        if np.linalg.norm((new_cluster - current_cluster)) < 0.001:
+        if np.linalg.norm((new_cluster - current_cluster)) < 0.01:
             break
 
         current_cluster = new_cluster.copy()
@@ -137,6 +137,9 @@ def clustering(num_cluster: int, initial_cluster: np.ndarray, kernel: np.ndarray
         duration=150,
         loop=0
     )
+
+    cluster_image[0].save(f"result/kernel_kmeans/{output_name}_first.png")
+    cluster_image[-1].save(f"result/kernel_kmeans/{output_name}_last.png")
 
 
 
@@ -164,7 +167,7 @@ if __name__ == '__main__':
     # user-defined variable
     IMAGE = "2"
     GAMMA_SPATIAL = 0.0001
-    GAMMA_COLOR = 0.001
+    GAMMA_COLOR = 0.0001
     NUM_CLUSTER = 3
     INIT_CLUSTER = "k-means++" # "random" or "k-means++"
 
