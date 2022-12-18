@@ -1,7 +1,7 @@
-import numpy as np
 import os
-import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
 from utils import compute_kernel, cluster2image
 
 
@@ -205,6 +205,8 @@ def spectral_clustering(
 
 
 if __name__ == '__main__':
+
+    os.makedirs("result/spectral", exist_ok=True)
 
     # user-defined variable
     IMAGE = "2"

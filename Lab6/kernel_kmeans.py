@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from PIL import Image
 from utils import compute_kernel, cluster2image
@@ -163,6 +164,8 @@ def kernel_kmeans(
 
 
 if __name__ == '__main__':
+
+    os.makedirs("result/kernel_kmeans", exist_ok=True)
 
     # user-defined variable
     IMAGE = "2"
