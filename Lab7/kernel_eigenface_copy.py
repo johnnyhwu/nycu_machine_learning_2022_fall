@@ -101,26 +101,26 @@ def kernelPCA(X, dims, kernel_type):
     W = eigen_vec[:, idx][:, :dims].real
     return kernel @ W
 
-# def kernelLDA(X, label, dims, kernel_type):
-#     label = np.asarray(label)
-#     c = np.unique(label)
-#     kernel = getKernel(X, kernel_type)
-#     n = kernel.shape[0]
-#     mu = np.mean(kernel, axis=0)
-#     N = np.zeros((n, n), dtype=np.float64)
-#     M = np.zeros((n, n), dtype=np.float64)
-#     for i in c:
-#         K_i = kernel[np.where(label == i)[0], :]
-#         l = K_i.shape[0]
-#         mu_i = np.mean(K_i, axis=0)
-#         N += K_i.T @ (np.eye(l) - (np.ones((l, l), dtype=np.float64) / l)) @ K_i
-#         M += l * ((mu_i - mu).T @ (mu_i - mu))
-#     eigen_val, eigen_vec = np.linalg.eig(np.linalg.pinv(N) @ M)
-#     for i in range(eigen_vec.shape[1]):
-#         eigen_vec[:, i] = eigen_vec[:, i] / np.linalg.norm(eigen_vec[:, i])
-#     idx = np.argsort(eigen_val)[::-1]
-#     W = eigen_vec[:, idx][:, :dims].real
-#     return kernel @ W
+def kernelLDA(X, label, dims, kernel_type):
+    label = np.asarray(label)
+    c = np.unique(label)
+    kernel = getKernel(X, kernel_type)
+    n = kernel.shape[0]
+    mu = np.mean(kernel, axis=0)
+    N = np.zeros((n, n), dtype=np.float64)
+    M = np.zeros((n, n), dtype=np.float64)
+    for i in c:
+        K_i = kernel[np.where(label == i)[0], :]
+        l = K_i.shape[0]
+        mu_i = np.mean(K_i, axis=0)
+        N += K_i.T @ (np.eye(l) - (np.ones((l, l), dtype=np.float64) / l)) @ K_i
+        M += l * ((mu_i - mu).T @ (mu_i - mu))
+    eigen_val, eigen_vec = np.linalg.eig(np.linalg.pinv(N) @ M)
+    for i in range(eigen_vec.shape[1]):
+        eigen_vec[:, i] = eigen_vec[:, i] / np.linalg.norm(eigen_vec[:, i])
+    idx = np.argsort(eigen_val)[::-1]
+    W = eigen_vec[:, idx][:, :dims].real
+    return kernel @ W
 
 def draw(target_data, target_filename, title, W, mu=None):
     if mu is None:
@@ -237,10 +237,10 @@ if __name__ == '__main__':
             faceRecognition(new_X, X_label, new_test, test_label, 'PCA', kernel_type)
 
             print('KernelLDA not implemented')
-            # new_coor = kernelLDA(data, label, 25, kernel_type)
-            # new_X = new_coor[:X.shape[0]]
-            # new_test = new_coor[X.shape[0]:]
-            # faceRecognition(new_X, X_label, new_test, test_label, 'LDA', kernel_type)
+            new_coor = kernelLDA(data, label, 25, kernel_type)
+            new_X = new_coor[:X.shape[0]]
+            new_test = new_coor[X.shape[0]:]
+            faceRecognition(new_X, X_label, new_test, test_label, 'LDA', kernel_type)
 
         else:
             print('Unknown task')

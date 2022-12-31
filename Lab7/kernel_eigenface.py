@@ -219,66 +219,82 @@ def face_recognition(train_projection, train_label, test_projection, test_label)
     
     print()
 
-# def PCALDA(X, label, dims):
-#     label = np.asarray(label)
-#     (n, d) = X.shape
-#     c = len(np.unique(label))
-#     [eigen_vec_pca, mu_pca] = PCA(X, n - c)
-#     projection = (X - mu_pca) @ eigen_vec_pca
-#     eigen_vec_lda = LDA(projection, label, dims)
-#     eigen_vec = eigen_vec_pca @ eigen_vec_lda
-#     return [eigen_vec, mu_pca]
 
-def linearKernel(X):
-    return X @ X.T
 
-def polynomialKernel(X, gamma, coef, degree):
-    return np.power(gamma * (X @ X.T) + coef, degree)
+def kernel_PCA(imgs, keep_nums, kernel_type):
+    # imgs shape = (165, 2500)
 
-def rbfKernel(X, gamma):
-    return np.exp(-gamma * scipy.spatial.distance.cdist(X, X, 'sqeuclidean'))
-
-def getKernel(X, kernel_type):
-    if kernel_type == 1:
-        kernel = linearKernel(X)
-    elif kernel_type == 2:
-        kernel = polynomialKernel(X, 5, 10, 2)
+    # compute kernel
+    # kernel shape: (165, 165)
+    if kernel_type == "linear":
+        kernel = imgs @ imgs.T
+    elif kernel_type == "rbf":
+        kernel = np.exp(-1e-7 * scipy.spatial.distance.cdist(imgs, imgs, 'sqeuclidean'))
     else:
-        kernel = rbfKernel(X, 1e-7)
-    return kernel
+        raise Exception("Unknown kernel method")
+    one_mat = np.ones((kernel.shape[0], kernel.shape[0]), dtype=np.float64) / kernel.shape[0]
+    kernel = kernel - one_mat @ kernel - kernel @ one_mat + one_mat @ kernel @ one_mat
+    
+    # eigen-decomposition
+    # eigenvalue shape = (165, )
+    # eigenvector shape = (165, 165)
+    eigenvalue, eigenvector = np.linalg.eigh(kernel)
 
-def kernelPCA(X, dims, kernel_type):
-    kernel = getKernel(X, kernel_type)
-    n = kernel.shape[0]
-    one = np.ones((n, n), dtype=np.float64) / n
-    kernel = kernel - one @ kernel - kernel @ one + one @ kernel @ one
-    eigen_val, eigen_vec = np.linalg.eigh(kernel)
-    for i in range(eigen_vec.shape[1]):
-        eigen_vec[:, i] = eigen_vec[:, i] / np.linalg.norm(eigen_vec[:, i])
-    idx = np.argsort(eigen_val)[::-1]
-    W = eigen_vec[:, idx][:, :dims].real
-    return kernel @ W
+    # normalize
+    for i in range(eigenvector.shape[1]):
+        eigenvector[:, i] = eigenvector[:, i] / np.linalg.norm(eigenvector[:, i])
+    
+    # sort eigenfaces based on its corresponding eigenvalues
+    idx = np.argsort(eigenvalue)[::-1]
+    eigenvector = eigenvector[:, idx]
 
-# def kernelLDA(X, label, dims, kernel_type):
-#     label = np.asarray(label)
-#     c = np.unique(label)
-#     kernel = getKernel(X, kernel_type)
-#     n = kernel.shape[0]
-#     mu = np.mean(kernel, axis=0)
-#     N = np.zeros((n, n), dtype=np.float64)
-#     M = np.zeros((n, n), dtype=np.float64)
-#     for i in c:
-#         K_i = kernel[np.where(label == i)[0], :]
-#         l = K_i.shape[0]
-#         mu_i = np.mean(K_i, axis=0)
-#         N += K_i.T @ (np.eye(l) - (np.ones((l, l), dtype=np.float64) / l)) @ K_i
-#         M += l * ((mu_i - mu).T @ (mu_i - mu))
-#     eigen_val, eigen_vec = np.linalg.eig(np.linalg.pinv(N) @ M)
-#     for i in range(eigen_vec.shape[1]):
-#         eigen_vec[:, i] = eigen_vec[:, i] / np.linalg.norm(eigen_vec[:, i])
-#     idx = np.argsort(eigen_val)[::-1]
-#     W = eigen_vec[:, idx][:, :dims].real
-#     return kernel @ W
+    # only keep first K eigenfaces
+    eigenvector = eigenvector[:, :keep_nums].real
+    return kernel @ eigenvector
+
+
+
+def kernel_LDA(imgs, labels, keep_nums, kernel_type):
+    # imgs shape = (165, 2500)
+    # labels shape = (165, )
+
+    # compute kernel
+    # kernel shape: (165, 165)
+    if kernel_type == "linear":
+        kernel = imgs @ imgs.T
+    elif kernel_type == "rbf":
+        kernel = np.exp(-1e-7 * scipy.spatial.distance.cdist(imgs, imgs, 'sqeuclidean'))
+    else:
+        raise Exception("Unknown kernel method.")
+
+    all_class = np.unique(labels)
+    mean = np.mean(kernel, axis=0)
+    S_w = np.zeros((kernel.shape[0], kernel.shape[0]), dtype=np.float64)
+    S_b = np.zeros((kernel.shape[0], kernel.shape[0]), dtype=np.float64)
+    
+    # calculate S_w and S_b
+    for c in all_class:
+        imgs_subset = kernel[np.where(labels == c)[0], :]
+        mean_subset = np.mean(imgs_subset, axis=0)
+        S_w += imgs_subset.T @ (np.eye(imgs_subset.shape[0]) - (np.ones((imgs_subset.shape[0], imgs_subset.shape[0]), dtype=np.float64) / imgs_subset.shape[0])) @ imgs_subset
+        S_b += imgs_subset.shape[0] * ((mean_subset - mean).T @ (mean_subset - mean))
+    
+    # eigen-decomposition
+    # eigenvalue shape = (165, )
+    # eigenvector shape = (165, 165)
+    eigenvalue, eigenvector = np.linalg.eig(np.linalg.pinv(S_w) @ S_b)
+
+    # normalize
+    for i in range(eigenvector.shape[1]):
+        eigenvector[:, i] = eigenvector[:, i] / np.linalg.norm(eigenvector[:, i])
+    
+    # sort eigenvectors based on its corresponding eigenvalues
+    idx = np.argsort(eigenvalue)[::-1]
+    fisherfaces = eigenvector[:, idx]
+
+    # only keep first K eigenfaces
+    fisherfaces = fisherfaces[:, :keep_nums].real
+    return kernel @ fisherfaces
 
 
 
@@ -287,8 +303,9 @@ if __name__ == '__main__':
     '''
     TASK 1: Show PCA Eigenfaces, LDA Fisherfaces and Reconstruction
     TASK 2: Face Recognition with PCA and LDA
+    TASK 3: Face Recognition with Kernel PCA and Kernel LDA
     '''
-    TASK = 2
+    TASK = 3
     
     train_name, train_data, train_label = read_data(root_path='Yale_Face_Database', is_train=True)
     test_name, test_data, test_label = read_data(root_path='Yale_Face_Database', is_train=False)
@@ -341,15 +358,16 @@ if __name__ == '__main__':
         face_recognition(train_projection, train_label, test_projetion, test_label)
 
     elif TASK == 3:
-        kernel_type = "linear"
+        kernel_type = "rbf"
         
-        new_coor = kernelPCA(all_data, 25, kernel_type)
-        new_X = new_coor[:X.shape[0], :]
-        new_test = new_coor[X.shape[0]:, :]
-        faceRecognition(new_X, X_label, new_test, test_label, 'PCA', kernel_type)
+        print(f"Face Recognition: Kernel PCA ({kernel_type})")
+        kernel_coord = kernel_PCA(all_data, 25, kernel_type)
+        train_coord = kernel_coord[:135, :]
+        test_coord = kernel_coord[135:, :]
+        face_recognition(train_coord, train_label, test_coord, test_label)
 
-        print('KernelLDA not implemented')
-        new_coor = kernelLDA(data, label, 25, kernel_type)
-        new_X = new_coor[:X.shape[0]]
-        new_test = new_coor[X.shape[0]:]
-        faceRecognition(new_X, X_label, new_test, test_label, 'LDA', kernel_type)
+        print(f"Face Recognition: Kernel LDA ({kernel_type})")
+        kernel_coord = kernel_LDA(all_data, all_label, 25, kernel_type)
+        train_coord = kernel_coord[:135]
+        test_coord = kernel_coord[135:]
+        face_recognition(train_coord, train_label, test_coord, test_label)
