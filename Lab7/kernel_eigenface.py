@@ -305,7 +305,7 @@ if __name__ == '__main__':
     TASK 2: Face Recognition with PCA and LDA
     TASK 3: Face Recognition with Kernel PCA and Kernel LDA
     '''
-    TASK = 3
+    TASK = 2
     
     train_name, train_data, train_label = read_data(root_path='Yale_Face_Database', is_train=True)
     test_name, test_data, test_label = read_data(root_path='Yale_Face_Database', is_train=False)
