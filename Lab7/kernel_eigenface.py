@@ -1,16 +1,84 @@
+import os
 import numpy as np
 from PIL import Image
-import os, re
 import scipy.spatial.distance
-from datetime import datetime
 import matplotlib.pyplot as plt
 
-# SHAPE = (195, 231)
-# SHAPE = (60, 60)
-SHAPE = (50, 50)
-
-K = [1, 3, 5, 7, 9, 11]
 kernels = ['linear kernel', 'polynomial kernel', 'rbf kernel']
+
+def visualize(title, target_data, target_name, eigenfaces, mean=None):
+    
+    # target_data shape = (10, 2500)
+    # target_name shape = (10, )
+    # eigenfaces shape = (2500, 25)
+    # mean shape = (2500, )
+
+    if title == "PCA":
+        os.makedirs(name="PCA eigenfaces/eigenfaces", exist_ok=True)
+        os.makedirs(name="PCA eigenfaces/reconstruction", exist_ok=True)
+    else:
+        os.makedirs(name="LDA fisherfaces/fisherfaces", exist_ok=True)
+        os.makedirs(name="LDA fisherfaces/reconstruction", exist_ok=True)
+
+    # eigenfaces
+    if eigenfaces.shape[1] == 25:
+
+        # save 25 eigenfaces in one image
+        fig, axs = plt.subplots(5, 5)
+        for i in range(5):
+            for j in range(5):
+                axs[i, j].imshow(eigenfaces[:, i*5 + j].reshape((50, 50)), cmap='gray')
+                axs[i, j].axis('off')
+        
+        if title == "PCA":
+            plt.savefig('PCA eigenfaces/eigenfaces/all.png')
+        else:
+            plt.savefig('LDA fisherfaces/fisherfaces/all.png')
+    
+        # save each eigenface as a single image
+        # for i in range(25):
+        #     plt.clf()
+        #     plt.axis('off')
+        #     plt.imshow(eigenfaces[:, i].reshape((50, 50)), cmap='gray')
+
+        #     if title == "PCA":
+        #         plt.savefig(f'PCA eigenfaces/eigenfaces/{i}.png')
+        #     else:
+        #         plt.savefig(f'LDA fisherfaces/fisherfaces/{i}.png')
+
+    # reconstruction shape = (10, 2500)
+    if mean is None:
+        mean = np.zeros(target_data.shape[1])
+    projection = (target_data - mean) @ eigenfaces
+    reconstruction = projection @ eigenfaces.T + mean
+    
+    # reconstruction
+    if reconstruction.shape[0] == 10:
+
+        # save 10 reconstruction in one image
+        fig, axs = plt.subplots(2, 5)
+        for i in range(2):
+            for j in range(5):
+                axs[i, j].imshow(reconstruction[i*5 + j, :].reshape((50, 50)), cmap='gray')
+                axs[i, j].axis('off')
+        
+        if title == "PCA":
+            plt.savefig('PCA eigenfaces/reconstruction/all.png')
+        else:
+            plt.savefig('LDA fisherfaces/reconstruction/all.png')
+
+        # save each reconstruction as a single image
+        # for i in range(10):
+        #     plt.clf()
+        #     plt.axis('off')
+        #     plt.imshow(reconstruction[i, :].reshape((50, 50)), cmap='gray')
+            
+        #     if title == "PCA":
+        #         plt.savefig(f'PCA eigenfaces/reconstruction/{target_name[i]}.png')
+        #     else:
+        #         plt.savefig(f'LDA fisherfaces/reconstruction/{target_name[i]}.png')
+
+
 
 def read_data(root_path, is_train):
 
@@ -38,6 +106,8 @@ def read_data(root_path, is_train):
         label.append(int(pgm_file[7:9]))
 
     return np.array(name), np.array(data), np.array(label)
+
+
 
 def PCA(imgs, keep_nums):
     # imgs shape = (165, 2500)
@@ -75,24 +145,79 @@ def PCA(imgs, keep_nums):
     eigenfaces = eigenfaces[:, :keep_nums].real
     return eigenfaces, mean
 
-def LDA(X, label, dims):
-    (n, d) = X.shape
-    label = np.asarray(label)
-    c = np.unique(label)
-    mu = np.mean(X, axis=0)
-    S_w = np.zeros((d, d), dtype=np.float64)
-    S_b = np.zeros((d, d), dtype=np.float64)
-    for i in c:
-        X_i = X[np.where(label == i)[0], :]
-        mu_i = np.mean(X_i, axis=0)
-        S_w += (X_i - mu_i).T @ (X_i - mu_i)
-        S_b += X_i.shape[0] * ((mu_i - mu).T @ (mu_i - mu))
-    eigen_val, eigen_vec = np.linalg.eig(np.linalg.pinv(S_w) @ S_b)
-    for i in range(eigen_vec.shape[1]):
-        eigen_vec[:, i] = eigen_vec[:, i] / np.linalg.norm(eigen_vec[:, i])
-    idx = np.argsort(eigen_val)[::-1]
-    W = eigen_vec[:, idx][:, :dims].real
-    return W
+
+
+def LDA(imgs, labels, keep_nums):
+    # imgs shape = (165, 2500)
+    # labels shape = (165, )
+
+    all_class = np.unique(labels)
+    mean = np.mean(imgs, axis=0)
+
+    # S_w: variance in class, shape = (2500, 2500)
+    # S_b variance among classes, shape = (2500, 2500)
+    S_w = np.zeros((imgs.shape[1], imgs.shape[1]), dtype=np.float64)
+    S_b = np.zeros((imgs.shape[1], imgs.shape[1]), dtype=np.float64)
+
+    # calculate S_w and S_b
+    for c in all_class:
+        imgs_subset = imgs[np.where(labels == c)[0], :]
+        mean_subset = np.mean(imgs_subset, axis=0)
+        S_w += (imgs_subset - mean_subset).T @ (imgs_subset - mean_subset)
+        S_b += imgs_subset.shape[0] * ((mean_subset - mean).T @ (mean_subset - mean))
+    
+    # eigen-decomposition
+    # eigenvalue shape = (2500, )
+    # eigenvector shape = (2500, 2500)
+    eigenvalue, eigenvector = np.linalg.eig(np.linalg.pinv(S_w) @ S_b)
+
+    # normalize
+    for i in range(eigenvector.shape[1]):
+        eigenvector[:, i] = eigenvector[:, i] / np.linalg.norm(eigenvector[:, i])
+    
+    # sort eigenvectors based on its corresponding eigenvalues
+    idx = np.argsort(eigenvalue)[::-1]
+    fisherfaces = eigenvector[:, idx]
+
+    # only keep first K eigenfaces
+    fisherfaces = fisherfaces[:, :keep_nums].real
+    return fisherfaces
+
+
+def distance(vec1, vec2):
+    return np.sum((vec1 - vec2) ** 2)
+
+def face_recognition(train_projection, train_label, test_projection, test_label):
+
+    # train_projection shape = (135, 25)
+    # train_label shape = (135, )
+    # test_projection shape = (30, 25)
+    # test_label shape = (30, )
+
+    test_distance = []
+    for i in range(30):
+
+        # calculate distance of a testing image between all training images
+        dist_lst = []
+        for j in range(135):
+            dist = np.sum((test_projection[i] - train_projection[j]) ** 2)
+            dist_lst.append([dist, train_label[j]])
+        
+        # sort data_lst based on distance
+        dist_lst.sort(key=lambda x: x[0])
+        test_distance.append(dist_lst)
+
+    # k-nearest neighbor
+    for k in range(1, 11):
+        correct = 0
+        for i in range(30):
+            neighbors, count = np.unique(np.array([x[1] for x in test_distance[i][:k]]), return_counts=True)
+            predict = neighbors[np.argmax(count)]
+            if predict == test_label[i]:
+                correct += 1
+        print(f'[k={k}] {correct}/{30} => acc: {round(correct / 30, 2):.2f}')
+    
+    print()
 
 # def PCALDA(X, label, dims):
 #     label = np.asarray(label)
@@ -155,78 +280,15 @@ def kernelPCA(X, dims, kernel_type):
 #     W = eigen_vec[:, idx][:, :dims].real
 #     return kernel @ W
 
-def draw(target_data, target_filename, title, W, mu=None):
-    if mu is None:
-        mu = np.zeros(target_data.shape[1])
-    projection = (target_data - mu) @ W
-    reconstruction = projection @ W.T + mu
-    folder = f"{title}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-    os.mkdir(folder)
-    os.mkdir(f'{folder}/{title}')
-    if W.shape[1] == 25:
-        plt.clf()
-        for i in range(5):
-            for j in range(5):
-                idx = i * 5 + j
-                plt.subplot(5, 5, idx + 1)
-                plt.imshow(W[:, idx].reshape(SHAPE[::-1]), cmap='gray')
-                plt.axis('off')
-        plt.savefig(f'./{folder}/{title}/{title}.png')
-    for i in range(W.shape[1]):
-        plt.clf()
-        plt.title(f'{title}_{i + 1}')
-        plt.imshow(W[:, i].reshape(SHAPE[::-1]), cmap='gray')
-        plt.savefig(f'./{folder}/{title}/{title}_{i + 1}.png')
-    
-    if reconstruction.shape[0] == 10:
-        plt.clf()
-        for i in range(2):
-            for j in range(5):
-                idx = i * 5 + j
-                plt.subplot(2, 5, idx + 1)
-                plt.imshow(reconstruction[idx].reshape(SHAPE[::-1]), cmap='gray')
-                plt.axis('off')
-        plt.savefig(f'./{folder}/reconstruction.png')
-    for i in range(reconstruction.shape[0]):
-        plt.clf()
-        plt.title(target_filename[i])
-        plt.imshow(reconstruction[i].reshape(SHAPE[::-1]), cmap='gray')
-        plt.savefig(f'./{folder}/{target_filename[i]}.png')
 
-def distance(vec1, vec2):
-    return np.sum((vec1 - vec2) ** 2)
-
-def faceRecognition(X, X_label, test, test_label, method, kernel_type=None):
-    if kernel_type is None:
-        print(f'Face recognition with {method} and KNN:')
-    else:
-        print(f'Face recognition with Kernel {method}({kernels[kernel_type - 1]}) and KNN:')
-    dist_mat = []
-    for i in range(test.shape[0]):
-        dist = []
-        for j in range(X.shape[0]):
-            dist.append((distance(X[j], test[i]), X_label[j]))
-        dist.sort(key=lambda x: x[0])
-        dist_mat.append(dist)
-    for k in K:
-        correct = 0
-        total = test.shape[0]
-        for i in range(test.shape[0]):
-            dist = dist_mat[i]
-            neighbor = np.asarray([x[1] for x in dist[:k]])
-            neighbor, count = np.unique(neighbor, return_counts=True)
-            predict = neighbor[np.argmax(count)]
-            if predict == test_label[i]:
-                correct += 1
-        print(f'K={k:>2}, accuracy: {correct / total:>.3f} ({correct}/{total})')
-    print()
 
 if __name__ == '__main__':
 
     '''
     TASK 1: Show PCA Eigenfaces, LDA Fisherfaces and Reconstruction
+    TASK 2: Face Recognition with PCA and LDA
     '''
-    TASK = 1
+    TASK = 2
     
     train_name, train_data, train_label = read_data(root_path='Yale_Face_Database', is_train=True)
     test_name, test_data, test_label = read_data(root_path='Yale_Face_Database', is_train=False)
@@ -250,38 +312,44 @@ if __name__ == '__main__':
         # randomly select 10 images
         target_idx = np.random.choice(all_data.shape[0], 10)
         target_data = all_data[target_idx]
-        target_filename = all_name[target_idx]
+        target_name = all_name[target_idx]
 
         # PCA eigenfaces: https://laid.delanover.com/explanation-face-recognition-using-eigenfaces/
+        print("PCA eigenfaces")
+        # eigenfaces shape = (2500, 25)
+        # mean shape = (2500, )
         eigenfaces, mean = PCA(all_data, 25)
-        draw(target_data, target_filename, 'pca_eigenface', eigenfaces, mean)
+        visualize("PCA", target_data, target_name, eigenfaces, mean)
 
-        exit()
         # LDA fisherfaces
-        W = LDA(data, label, 25)
-        draw(target_data, target_filename, 'lda_fisherface', W)
+        print("LDA fisherfaces")
+        # fisherfaces shape = (2500, 25)
+        fisherfaces = LDA(all_data, all_label, 25)
+        visualize("LDA", target_data, target_name, fisherfaces)
 
-        # elif TASK == '2':
-        #     W, mu = PCA(data, 25)
-        #     X_proj = (X - mu) @ W
-        #     test_proj = (test - mu) @ W
-        #     faceRecognition(X_proj, X_label, test_proj, test_label, 'PCA')
+    elif TASK == 2:
+        print("Face Recognition: PCA")
+        eigenfaces, mean = PCA(all_data, 25)
+        train_projection = (train_data - mean) @ eigenfaces
+        test_projetion = (test_data - mean) @ eigenfaces
+        face_recognition(train_projection, train_label, test_projetion, test_label)
 
-        #     W = LDA(data, label, 25)
-        #     X_proj = X @ W
-        #     test_proj = test @ W
-        #     faceRecognition(X_proj, X_label, test_proj, test_label, 'LDA')
+        print("Face Recognition: LDA")
+        fisherfaces = LDA(all_data, all_label, 25)
+        train_projection = train_data @ fisherfaces
+        test_projetion = test_data @ fisherfaces
+        face_recognition(train_projection, train_label, test_projetion, test_label)
 
-        # elif TASK == '3':
-        #     kernel_type = int(input('1) Linear kernel\n2) Polynomial kernel\n3) RBF kernel\nChoose a kernel: '))
-            
-        #     new_coor = kernelPCA(data, 25, kernel_type)
-        #     new_X = new_coor[:X.shape[0], :]
-        #     new_test = new_coor[X.shape[0]:, :]
-        #     faceRecognition(new_X, X_label, new_test, test_label, 'PCA', kernel_type)
+    elif TASK == 3:
+        kernel_type = "linear"
+        
+        new_coor = kernelPCA(all_data, 25, kernel_type)
+        new_X = new_coor[:X.shape[0], :]
+        new_test = new_coor[X.shape[0]:, :]
+        faceRecognition(new_X, X_label, new_test, test_label, 'PCA', kernel_type)
 
-        #     print('KernelLDA not implemented')
-            # new_coor = kernelLDA(data, label, 25, kernel_type)
-            # new_X = new_coor[:X.shape[0]]
-            # new_test = new_coor[X.shape[0]:]
-            # faceRecognition(new_X, X_label, new_test, test_label, 'LDA', kernel_type)
+        print('KernelLDA not implemented')
+        new_coor = kernelLDA(data, label, 25, kernel_type)
+        new_X = new_coor[:X.shape[0]]
+        new_test = new_coor[X.shape[0]:]
+        faceRecognition(new_X, X_label, new_test, test_label, 'LDA', kernel_type)

@@ -54,6 +54,7 @@ def LDA(X, label, dims):
         S_w += (X_i - mu_i).T @ (X_i - mu_i)
         S_b += X_i.shape[0] * ((mu_i - mu).T @ (mu_i - mu))
     eigen_val, eigen_vec = np.linalg.eig(np.linalg.pinv(S_w) @ S_b)
+
     for i in range(eigen_vec.shape[1]):
         eigen_vec[:, i] = eigen_vec[:, i] / np.linalg.norm(eigen_vec[:, i])
     idx = np.argsort(eigen_val)[::-1]
@@ -208,9 +209,9 @@ if __name__ == '__main__':
             target_data = data[target_idx]
             target_filename = filename[target_idx]
 
-            print('Compute eigenfaces...')
-            W, mu = PCA(data, 25)
-            draw(target_data, target_filename, 'pca_eigenface', W, mu)
+            # print('Compute eigenfaces...')
+            # W, mu = PCA(data, 25)
+            # draw(target_data, target_filename, 'pca_eigenface', W, mu)
 
             print('Compute fisherfaces...')
             W = LDA(data, label, 25)
