@@ -8,3 +8,5 @@ Below is the short description for each lab:
 - Lab 3: Baysian Linear Regression
 - Lab 4: Logistic Regression & EM
 - Lab 5: Gaussian Process & Support Vector Machine
+- Lab 6: Kernel K-means and Spectral Clustering
+- Lab 7: Kernel Eigenfaces and t-SNE
